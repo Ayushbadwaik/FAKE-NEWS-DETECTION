@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>AI Fake News Detector</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700&display=swap" rel="stylesheet">
+
+<style>
+
+body{
+margin:0;
+font-family:'Poppins',sans-serif;
+height:100vh;
+display:flex;
+justify-content:center;
+align-items:center;
+background:linear-gradient(120deg,#4facfe,#8f94fb);
+background-size:300% 300%;
+animation:bgMove 12s infinite alternate;
+transition:1s;
+}
+
+/* animated background */
+
+@keyframes bgMove{
+0%{background-position:0% 50%}
+100%{background-position:100% 50%}
+}
+
+/* fake red glow */
+
+.fake{
+background:linear-gradient(120deg,#ff0000,#5a0000);
+animation:redGlow 1s infinite alternate;
+}
+
+@keyframes redGlow{
+0%{box-shadow:0 0 30px red inset}
+100%{box-shadow:0 0 120px red inset}
+}
+
+/* real green glow */
+
+.real{
+background:linear-gradient(120deg,#00c853,#00ff9f);
+animation:greenGlow 1.5s infinite alternate;
+}
+
+@keyframes greenGlow{
+0%{box-shadow:0 0 30px #00ff88 inset}
+100%{box-shadow:0 0 120px #00ff88 inset}
+}
+
+.container{
+
+background:rgba(255,255,255,0.15);
+backdrop-filter:blur(20px);
+padding:40px;
+border-radius:22px;
+width:560px;
+text-align:center;
+box-shadow:0 30px 80px rgba(0,0,0,0.4);
+}
+
+h1{
+color:white;
+font-weight:700;
+margin-bottom:5px;
+}
+
+.subtitle{
+color:#f1f1f1;
+font-size:14px;
+margin-bottom:20px;
+}
+
+textarea{
+
+width:100%;
+height:120px;
+border:none;
+border-radius:14px;
+padding:12px;
+font-size:16px;
+outline:none;
+}
+
+button{
+
+margin-top:20px;
+padding:14px 40px;
+border:none;
+border-radius:30px;
+background:#ff5c5c;
+color:white;
+font-size:17px;
+cursor:pointer;
+transition:.3s;
+}
+
+button:hover{
+transform:scale(1.1);
+}
+
+#result{
+
+margin-top:25px;
+font-size:30px;
+color:white;
+font-weight:700;
+}
+
+#sources{
+color:white;
+margin-top:10px;
+font-size:14px;
+}
+
+/* scanning animation */
+
+.scan{
+
+width:100%;
+height:4px;
+background:linear-gradient(90deg,transparent,white,transparent);
+margin-top:20px;
+opacity:0;
+}
+
+.scan.active{
+
+opacity:1;
+animation:scan 1.5s infinite;
+}
+
+@keyframes scan{
+
+0%{transform:translateX(-100%)}
+100%{transform:translateX(100%)}
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>AI Fake News Detector</h1>
+<p class="subtitle">Ayush Badwaik & Purval Naik<br>CM23051 & CM23037</p>
+
+<textarea id="news" placeholder="Paste news headline or paragraph"></textarea>
+
+<button onclick="detect()">Analyze</button>
+
+<div class="scan" id="scan"></div>
+
+<div id="result"></div>
+
+<div id="sources"></div>
+
+</div>
+<script>
+
+/* preload sounds */
+
+let siren = new Audio("/static/ca.mp3")
+siren.preload = "auto"
+
+let successSound = new Audio("/static/a.mp3")
+successSound.preload = "auto"
+
+
+async function detect(){
+
+let text = document.getElementById("news").value
+
+if(text.trim() === ""){
+alert("Please enter news text")
+return
+}
+
+/* scanning animation */
+
+let scan = document.getElementById("scan")
+scan.classList.add("active")
+
+/* request to backend */
+
+let res = await fetch("/detect",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({news:text})
+
+})
+
+let data = await res.json()
+
+scan.classList.remove("active")
+
+let result = document.getElementById("result")
+let sources = document.getElementById("sources")
+
+/* reset backgrounds */
+
+document.body.classList.remove("real")
+document.body.classList.remove("fake")
+
+
+/* TRUE NEWS */
+
+if(data.prediction === "TRUE"){
+
+document.body.classList.add("real")
+
+result.innerHTML = "✅ TRUE NEWS"
+
+if(data.sources && data.sources.length > 0){
+
+sources.innerHTML = "Sources:<br>" + data.sources.join("<br>")
+
+}else{
+
+sources.innerHTML = ""
+
+}
+
+/* stop siren if playing */
+
+siren.pause()
+siren.currentTime = 0
+
+/* play success sound */
+
+successSound.currentTime = 0
+successSound.play()
+
+}
+
+
+/* FAKE NEWS */
+
+else{
+
+document.body.classList.add("fake")
+
+result.innerHTML = "🚨 FAKE / UNVERIFIED NEWS"
+
+sources.innerHTML = "No trusted sources found"
+
+/* stop success sound */
+
+successSound.pause()
+successSound.currentTime = 0
+
+/* play siren */
+
+siren.currentTime = 0
+siren.play()
+
+}
+
+}
+
+</script>
+
+</body>
+</html>
